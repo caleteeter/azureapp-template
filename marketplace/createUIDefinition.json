@@ -101,17 +101,17 @@
                         "name": "openEnclaveSdk",
                         "type": "Microsoft.Common.OptionsGroup",
                         "label": "Install OpenEnclave SDK",
-                        "defaultValue": "Yes",
+                        "defaultValue": "Install",
                         "toolTip": "Choose to pre-install the OpenEnclave SDK components",
                         "constraints": {
                             "allowedValues": [
                                 {
-                                    "label": "Yes",
-                                    "value": "Yes"
+                                    "label": "Install",
+                                    "value": "Install"
                                 },
                                 {
-                                    "label": "No",
-                                    "value": "No"
+                                    "label": "NotInstall",
+                                    "value": "NotInstall"
                                 }
                             ]
                         }
