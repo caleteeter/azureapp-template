@@ -8,6 +8,9 @@
         "dnsName": {
             "type": "string"
         },
+        "installOeSdk": {
+            "type": "string"
+        },
         "location": {
             "type": "string"
         },
@@ -38,7 +41,7 @@
                     ]
                 },
                 "protectedSettings": {
-                    "commandToExecute": "[concat('/bin/bash config.sh \"', parameters('adminUsername'), '\" \"', parameters('artifactsLocationUrl'), '\" \"', parameters('artifactsLocationUrlSasToken'), '\" \"', parameters('dnsName'), '\"')]"
+                    "commandToExecute": "[concat('/bin/bash config.sh \"', parameters('adminUsername'), '\" \"', parameters('artifactsLocationUrl'), '\" \"', parameters('artifactsLocationUrlSasToken'), '\" \"', parameters('dnsName'), '\" \"', parameters('installOeSdk'), '\"')]"
                 }
             }
         }
