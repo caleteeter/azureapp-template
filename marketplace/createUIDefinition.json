@@ -3,32 +3,95 @@
     "handler": "Microsoft.Azure.CreateUIDef",
     "version": "0.1.2-preview",
     "parameters": {
+        "resourceTypes": [
+            "Microsoft.Compute/virtualmachines/dcv2-series"
+        ],
         "basics": [
             {
-                "name": "name",
-                "type": "Microsoft.Common.TextBox",
-                "label": "Resource prefix",
-                "toolTip": "Prefix for naming of resources that will be deployed.  This should be less than 6 characters in length, including lower case alpha and numbers only.",
-                "constraints": {
-                    "required": true,
-                    "regex": "^[a-z][a-z0-9-]{1,5}$",
-                    "validationMessage": "Name should be between 1 and 6 characters in length, including lower case alpha and numbers only."
+                "name": "RegionalConstraintMsg1",
+                "type": "Microsoft.Common.TextBlock",
+                "visible": true,
+                "options": {
+                    "text": "Please provide the configuration values for your application. Please note that this configuration requires Specialty SKU DCv2-Series VMs that are currently only availble in select regions.",
+                    "link": {
+                        "label": "See available DCsv2-Series regions",
+                        "uri": "https://azure.microsoft.com/en-us/global-infrastructure/services/?products=virtual-machines"
+                    }
                 }
             },
             {
-                "name": "username",
+                "name": "OSImageTypeDropDown",
+                "type": "Microsoft.Common.DropDown",
+                "label": "Image",
+                "defaultValue": "2019-datacenter-gensecond",
+                "toolTip": "",
+                "constraints": {
+                    "allowedValues": [
+                        {
+                            "label": "Windows Server 2019 Datacenter (Gen2)",
+                            "value": "2019-datacenter-gensecond"
+                        },
+                        {
+                            "label": "Windows Server 2012 Datacenter (Gen2)",
+                            "value": "2012-datacenter-gensecond"
+                        },
+                        {
+                            "label": "Ubuntu Server 19.04 (Gen2)",
+                            "value": "19_04-gen2"
+                        },
+                        {
+                            "label": "Ubuntu Server 19.10 (Gen 2)",
+                            "value": "19_10-gen2"
+                        },
+                        {
+                            "label": "Ubuntu Server 18.04 (Gen 2)",
+                            "value": "18_04-lts-gen2"
+                        },
+                        {
+                            "label": "Ubuntu Server 16.04 (Gen 2)",
+                            "value": "16_04-lts-gen2"
+                        }
+                    ],
+                    "required": true
+                },
+                "visible": true
+            },
+            {
+                "name": "vmName",
+                "type": "Microsoft.Common.TextBox",
+                "label": "Virtual Machine name",
+                "toolTip": "The name of the Virtual Machine.",
+                "defaultValue": "accvm",
+                "constraints": {
+                    "required": true,
+                    "regex": "^[a-z0-9A-Z-]{3,79}$",
+                    "validationMessage": "The VM Name must be between 3 and 79 characters long and contain letters, numbers and hyphens only."
+                }
+            },
+            {
+                "name": "linuxAdminUsername",
                 "type": "Microsoft.Compute.UserNameTextBox",
                 "label": "Username",
-                "toolTip": "Admin username for all of the deployed virtual machines.",
+                "toolTip": "Admin username for the machine",
                 "osPlatform": "Linux",
                 "constraints": {
-                    "required": true,
-                    "regex": "^[a-z][a-z0-9-]{1,15}$",
-                    "validationMessage": "Name should be between 1 and 15 characters in length"
-                }
+                    "required": true
+                },
+                "visible": "[and(not(contains(basics('OSImageTypeDropDown'), 'datacenter')), not(empty(basics('OSImageTypeDropDown'))))]"
             },
             {
-                "name": "adminCredentials",
+                "name": "windowsAdminUsername",
+                "type": "Microsoft.Compute.UserNameTextBox",
+                "label": "Username",
+                "toolTip": "Admin username for the machine",
+                "osPlatform": "Windows",
+                "constraints": {
+                    "required": true
+                },
+                "visible": "[and(contains(basics('OSImageTypeDropDown'), 'datacenter'), not(empty(basics('OSImageTypeDropDown'))))]"
+            },
+            {
+                "name": "linuxPassword",
                 "type": "Microsoft.Compute.CredentialsCombo",
                 "label": {
                     "authenticationType": "Authentication type",
@@ -38,97 +101,304 @@
                 },
                 "toolTip": {
                     "authenticationType": "",
-                    "password": "VM password must be 12 characters and have 3 of the following: 1 lower case character, 1 upper case character, 1 number, and 1 special character.",
+                    "password": "",
                     "sshPublicKey": ""
                 },
                 "constraints": {
-                    "required": true
+                    "required": true,
+                    "customPasswordRegex": "^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d]{12,}$",
+                    "customValidationMessage": "The password must be alphanumeric, contain at least 12 characters, and have at least 1 letter and 1 number."
+                },
+                "options": {
+                    "hideConfirmation": false,
+                    "hidePassword": false
+                },
+                "osPlatform": "Linux",
+                "visible": "[and(not(contains(basics('OSImageTypeDropDown'), 'datacenter')), not(empty(basics('OSImageTypeDropDown'))))]"
+            },
+            {
+                "name": "windowsPassword",
+                "type": "Microsoft.Compute.CredentialsCombo",
+                "label": {
+                    "password": "Password",
+                    "confirmPassword": "Confirm password"
+                },
+                "toolTip": {
+                    "password": ""
+                },
+                "constraints": {
+                    "required": true,
+                    "customPasswordRegex": "^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d]{12,}$",
+                    "customValidationMessage": "The password must be alphanumeric, contain at least 12 characters, and have at least 1 letter and 1 number."
                 },
                 "options": {
                     "hideConfirmation": false
                 },
-                "osPlatform": "Linux"
-            },
-            {
-                "name": "vmStoragePerformance",
-                "type": "Microsoft.Common.DropDown",
-                "label": "VM disk type",
-                "toolTip": "Premium disks (SSD) are backed by solid state drives and offer consistent, low-latency performance. They provide the best balance between price and performance, and are ideal for I/O-intensive applications and production workloads. Standard disks (HDD) are backed by magnetic drives and are preferable for applications where data is accessed infrequently. Zone-redundant disks are backed by Zone redundant storage (ZRS) that replicates your data across multiple zones and are available even if a single zone is down.",
-                "defaultValue": "Premium SSD",
-                "constraints": {
-                    "allowedValues": [
-                        {
-                            "label": "Premium SSD",
-                            "value": "Premium"
-                        },
-                        {
-                            "label": "Standard SSD",
-                            "value": "Standard"
-                        }
-                    ]
-                }
+                "osPlatform": "Windows",
+                "visible": "[and(contains(basics('OSImageTypeDropDown'), 'datacenter'), not(empty(basics('OSImageTypeDropDown'))))]"
             }
         ],
         "steps": [
             {
-                "name": "options",
-                "label": "Options",
+                "name": "VirtualMachineConfig",
+                "label": "Virtual Machine Settings",
                 "subLabel": {
-                    "preValidation": "Choose virtual machine size",
+                    "preValidation": "Configure the virtual machine's resources and settings",
                     "postValidation": "Done"
                 },
-                "bladeTitle": "Options",
+                "bladeTitle": "Virtual Machine Settings",
                 "elements": [
                     {
-                        "name": "vmSize",
-                        "type": "Microsoft.Compute.SizeSelector",
-                        "label": "Virtual machine size",
-                        "toolTip": "Virtual machine size",
-                        "recommendedSizes": [
-                            "Standard_DC2s",
-                            "Standard_DC4s"
-                        ],
-                        "constraints": {
-                            "allowedSizes": [
-                                "Standard_DC2s",
-                                "Standard_DC4s"
-                            ]
-                        },
-                        "osPlatform": "Linux",
-                        "count": 1
+                        "name": "RegionalConstraintMsg2",
+                        "type": "Microsoft.Common.TextBlock",
+                        "visible": "[empty(coalesce(steps('VirtualMachineConfig').vmSizeLinux, steps('VirtualMachineConfig').vmSizeWindows))]",
+                        "options": {
+                            "text": "Confidential Computing DCsv2-series VMs are only available is select regions. If this message persists, return to the previous page and select an available region",
+                            "link": {
+                                "label": "See available DCsv2-Series regions",
+                                "uri": "https://azure.microsoft.com/en-us/global-infrastructure/services/?products=virtual-machines"
+                            }
+                        }
                     },
                     {
-                        "name": "openEnclaveSdk",
-                        "type": "Microsoft.Common.OptionsGroup",
-                        "label": "Install OpenEnclave SDK",
-                        "defaultValue": "Install",
-                        "toolTip": "Choose to pre-install the OpenEnclave SDK components",
+                        "name": "vmSizeLinux",
+                        "type": "Microsoft.Compute.SizeSelector",
+                        "label": "Virtual Machine Size",
+                        "toolTip": "The size of virtual machine to provision.",
+                        "recommendedSizes": [
+                            "Standard_DC1s_v2",
+                            "Standard_DC2s_v2",
+                            "Standard_DC4s_v2",
+                            "Standard_DC8_v2"
+                        ],
+                        "osPlatform": "Linux",
+                        "imageReference": {
+                            "publisher": "Canonical",
+                            "offer": "UbuntuServer",
+                            "sku": "[basics('OSImageTypeDropDown')]"
+                        },
+                        "count": "1",
+                        "visible": "[not(contains(basics('OSImageTypeDropDown'), 'datacenter'))]",
                         "constraints": {
-                            "allowedValues": [
-                                {
-                                    "label": "Install",
-                                    "value": "Install"
-                                },
-                                {
-                                    "label": "NotInstall",
-                                    "value": "NotInstall"
-                                }
+                            "allowedSizes": [
+                                "Standard_DC1s_v2",
+                                "Standard_DC2s_v2",
+                                "Standard_DC4s_v2",
+                                "Standard_DC8_v2"
                             ]
                         }
+                    },
+                    {
+                        "name": "vmSizeWindows",
+                        "type": "Microsoft.Compute.SizeSelector",
+                        "label": "Virtual Machine Size",
+                        "toolTip": "The size of virtual machine to provision.",
+                        "recommendedSizes": [
+                            "Standard_DC1s_v2",
+                            "Standard_DC2s_v2",
+                            "Standard_DC4s_v2",
+                            "Standard_DC8_v2"
+                        ],
+                        "osPlatform": "Windows",
+                        "imageReference": {
+                            "publisher": "MicrosoftWindowsServer",
+                            "offer": "windowsserver-gen2preview",
+                            "sku": "[basics('OSImageTypeDropDown')]"
+                        },
+                        "count": "1",
+                        "visible": "[contains(basics('OSImageTypeDropDown'), 'datacenter')]",
+                        "constraints": {
+                            "allowedSizes": [
+                                "Standard_DC1s_v2",
+                                "Standard_DC2s_v2",
+                                "Standard_DC4s_v2",
+                                "Standard_DC8_v2"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "OSDisk",
+                        "type": "Microsoft.Common.Section",
+                        "label": "Monitoring",
+                        "elements": [
+                            {
+                                "name": "OSDiskTypeDCsv2",
+                                "type": "Microsoft.Common.DropDown",
+                                "label": "OS Disk Type",
+                                "defaultValue": "Premium SSD",
+                                "toolTip": "Azure VMs have one operating system disk and a temporary disk for short-term storage. You can attach additional data disks. The size of the VM determines the type of storage you can use and the number of data disks allowed",
+                                "constraints": {
+                                    "allowedValues": [
+                                        {
+                                            "label": "Standard HDD",
+                                            "value": "Standard_LRS"
+                                        },
+                                        {
+                                            "label": "Standard SSD",
+                                            "value": "StandardSSD_LRS"
+                                        },
+                                        {
+                                            "label": "Premium SSD",
+                                            "value": "Premium_LRS"
+                                        }
+                                    ],
+                                    "required": true
+                                },
+                                "visible": "[not(contains(coalesce(steps('VirtualMachineConfig').vmSizeLinux,steps('VirtualMachineConfig').vmSizeWindows), 'DC8')) ]"
+                            },
+                            {
+                                "name": "OSDiskTypeDCv2",
+                                "type": "Microsoft.Common.DropDown",
+                                "label": "OS Disk Type",
+                                "defaultValue": "Standard HDD",
+                                "toolTip": "Azure VMs have one operating system disk and a temporary disk for short-term storage. You can attach additional data disks. The size of the VM determines the type of storage you can use and the number of data disks allowed. Note that Standard DC8_V2 VMs do not support Premium storage.",
+                                "constraints": {
+                                    "allowedValues": [
+                                        {
+                                            "label": "Standard HDD",
+                                            "value": "Standard HDD"
+                                        },
+                                        {
+                                            "label": "Standard SSD",
+                                            "value": "Standard SSD"
+                                        }
+                                    ],
+                                    "required": true
+                                },
+                                "visible": "[contains(coalesce(steps('VirtualMachineConfig').vmSizeLinux,steps('VirtualMachineConfig').vmSizeWindows), 'DC8') ]"
+                            }
+                        ],
+                        "visible": true
+                    },
+                    {
+                        "name": "Network",
+                        "type": "Microsoft.Common.Section",
+                        "label": "Network",
+                        "elements": [
+                            {
+                                "name": "virtualNetwork",
+                                "type": "Microsoft.Network.VirtualNetworkCombo",
+                                "label": {
+                                    "virtualNetwork": "Virtual network",
+                                    "subnets": "Subnets"
+                                },
+                                "toolTip": {
+                                    "virtualNetwork": "Name of the virtual network",
+                                    "subnets": "Subnets for the virtual network"
+                                },
+                                "defaultValue": {
+                                    "name": "[concat(basics('vmName'), '-vnet01')]",
+                                    "addressPrefixSize": "/16"
+                                },
+                                "constraints": {
+                                    "minAddressPrefixSize": "/16"
+                                },
+                                "subnets": {
+                                    "subnet1": {
+                                        "label": "Subnet",
+                                        "defaultValue": {
+                                            "name": "default",
+                                            "addressPrefixSize": "/24"
+                                        },
+                                        "constraints": {
+                                            "minAddressPrefixSize": "/24",
+                                            "minAddressCount": 12,
+                                            "requireContiguousAddresses": false
+                                        }
+                                    }
+                                }
+                            },
+                            {
+                                "name": "inboundPorts",
+                                "type": "Microsoft.Common.OptionsGroup",
+                                "label": "Select public inbound ports",
+                                "defaultValue": "disable",
+                                "toolTip": "By default, access to the virtual machine is restricted to resources in the same virtual network. Select None to confirm, or choose to allow traffic from the public internet to one of the common ports - SSH (Port #22) for Linux and RDP (Port#3389) for Windows",
+                                "constraints": {
+                                    "allowedValues": [
+                                        {
+                                            "label": "None",
+                                            "value": "disable"
+                                        },
+                                        {
+                                            "label": "SSH(Linux)/RDP(Windows)",
+                                            "value": "enable"
+                                        }
+                                    ],
+                                    "required": true
+                                },
+                                "visible": "[not(empty(coalesce(steps('VirtualMachineConfig').vmSizeLinux, steps('VirtualMachineConfig').vmSizeWindows)))]"
+                            }
+                        ],
+                        "visible": true
+                    },
+                    {
+                        "name": "Monitoring",
+                        "type": "Microsoft.Common.Section",
+                        "label": "Monitoring",
+                        "elements": [
+                            {
+                                "name": "bootDiagnostics",
+                                "type": "Microsoft.Common.OptionsGroup",
+                                "label": "Boot diagnostics",
+                                "defaultValue": "Disabled",
+                                "constraints": {
+                                    "allowedValues": [
+                                        {
+                                            "label": "Disabled",
+                                            "value": "Disabled"
+                                        },
+                                        {
+                                            "label": "Enabled",
+                                            "value": "Enabled"
+                                        }
+                                    ],
+                                    "required": true
+                                },
+                                "visible": "[not(empty(coalesce(steps('VirtualMachineConfig').vmSizeLinux, steps('VirtualMachineConfig').vmSizeWindows)))]"
+                            },
+                            {
+                                "name": "diagnosticStorage",
+                                "type": "Microsoft.Storage.StorageAccountSelector",
+                                "label": "Diagnostic Storage Account",
+                                "toolTip": "Storage Account for the Virtual Machine's diagnostics",
+                                "defaultValue": {
+                                    "name": "[concat(basics('vmName'), 'diag')]",
+                                    "type": "Standard_LRS"
+                                },
+                                "options": {
+                                    "hideExisting": false
+                                },
+                                "visible": "[contains(steps('VirtualMachineConfig').Monitoring.bootDiagnostics, 'Enabled')]"
+                            }
+                        ],
+                        "visible": true
                     }
                 ]
             }
         ],
         "outputs": {
-            "prefix": "[basics('name')]",
-            "authType": "[basics('adminCredentials').authenticationType]",
-            "adminUsername": "[basics('username')]",
-            "adminPassword": "[basics('adminCredentials').password]",
-            "adminSSHKey": "[basics('adminCredentials').sshPublicKey]",
-            "vmStoragePerformance": "[basics('vmStoragePerformance')]",
-            "vmSize": "[steps('network').vmSection.nodeSize]",
-            "installOeSdk": "[steps('size').openEnclaveSdk]",
-            "location": "[location()]"
+            "location": "[location()]",
+            "vmName": "[basics('vmName')]",
+            "osImageName": "[basics('OSImageTypeDropDown')]",
+            "adminUsername": "[coalesce(basics('windowsAdminUsername'),basics('linuxAdminUsername'))]",
+            "authenticationType": "[coalesce(basics('windowsPassword').authenticationType, basics('linuxPassword').authenticationType)]",
+            "adminPasswordOrKey": "[coalesce(basics('windowsPassword').password, basics('linuxPassword').password, basics('linuxPassword').sshPublicKey)]",
+            "vmSize": "[coalesce(steps('VirtualMachineConfig').vmSizeLinux,steps('VirtualMachineConfig').vmSizeWindows) ]",
+            "virtualNetworkNewOrExisting": "[steps('VirtualMachineConfig').Network.virtualNetwork.newOrExisting]",
+            "virtualNetworkName": "[steps('VirtualMachineConfig').Network.virtualNetwork.name]",
+            "vnetPrefixes": "[first(steps('VirtualMachineConfig').Network.virtualNetwork.addressPrefixes)]",
+            "subnetName": "[steps('VirtualMachineConfig').Network.virtualNetwork.subnets.subnet1.name]",
+            "subnetPrefix": "[steps('VirtualMachineConfig').Network.virtualNetwork.subnets.subnet1.addressPrefix]",
+            "virtualNetworkResourceGroupName": "[steps('VirtualMachineConfig').Network.virtualNetwork.resourceGroup]",
+            "inboundPorts": "[steps('VirtualMachineConfig').Network.inboundPorts]",
+            "bootDiagnostics": "[steps('VirtualMachineConfig').Monitoring.bootDiagnostics]",
+            "diagnosticsStorageNewOrExisting": "[steps('VirtualMachineConfig').Monitoring.diagnosticStorage.newOrExisting]",
+            "diagnosticsStorageName": "[steps('VirtualMachineConfig').Monitoring.diagnosticStorage.name]",
+            "diagnosticsStorageResourceGroupName": "[steps('VirtualMachineConfig').Monitoring.diagnosticStorage.resourceGroup]",
+            "diagnosticsStorageType": "[steps('VirtualMachineConfig').Monitoring.diagnosticStorage.type]",
+            "diagnosticsStorageKind": "[steps('VirtualMachineConfig').Monitoring.diagnosticStorage.kind]",
+            "osDiskType": "[coalesce(steps('VirtualMachineConfig').OSDisk.OSDiskTypeDCsv2,steps('VirtualMachineConfig').OSDisk.OSDiskTypeDCv2)]"
         }
     }
 }
